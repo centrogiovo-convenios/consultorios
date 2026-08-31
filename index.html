@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CENTRO GIOVO – Disponibilidad de Consultorios</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      
+      <!-- Brand & Logo -->
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo.png" alt="GIOVO Dermatología y Salud" class="brand-logo-img" style="height: 52px; width: auto; object-fit: contain;" />
+        </div>
+        <div class="brand-divider"></div>
+        <div class="brand-text">
+          <h1>CENTRO GIOVO <span class="badge-giovo">Dermatología & Salud</span></h1>
+          <p>Organización de Consultorios & Asignación Médica</p>
+        </div>
+      </div>
+
+      <!-- KPI Summary -->
+      <div class="kpi-bar">
+        <div class="kpi-card kpi-total">
+          <span class="kpi-val" id="kpiTotalRooms">10</span>
+          <span class="kpi-lbl"><i class="fa-solid fa-door-open"></i> Consultorios</span>
+        </div>
+        <div class="kpi-card kpi-busy">
+          <span class="kpi-val" id="kpiBusyCount">0</span>
+          <span class="kpi-lbl"><i class="fa-solid fa-user-doctor"></i> Ocupados</span>
+        </div>
+        <div class="kpi-card kpi-free">
+          <span class="kpi-val" id="kpiFreeCount">0</span>
+          <span class="kpi-lbl"><i class="fa-solid fa-circle-check"></i> Libres</span>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="header-actions">
+        <button id="btnQuickAssign" class="btn btn-giovo-blue">
+          <i class="fa-solid fa-plus-circle"></i> Asignar Médico
+        </button>
+        <button id="btnSmartFinder" class="btn btn-giovo-magenta">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Buscar Libre
+        </button>
+        <button id="btnManageShifts" class="btn btn-secondary">
+          <i class="fa-solid fa-clock"></i> Módulos Horarios
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="main-content">
+
+    <!-- Simple Filter Control Bar -->
+    <div class="filters-panel">
+      <div class="filters-row">
+        
+        <!-- View Toggle (Día / Semana Completa) -->
+        <div class="filter-group">
+          <label><i class="fa-solid fa-eye"></i> Vista Agenda</label>
+          <div class="segmented-control">
+            <button id="btnDayView" class="segment active"><i class="fa-solid fa-calendar-day"></i> Día Esp.</button>
+            <button id="btnWeekView" class="segment"><i class="fa-solid fa-calendar-week"></i> Semana (Lun-Vie)</button>
+          </div>
+        </div>
+
+        <!-- Date Selector & Controls -->
+        <div class="filter-group">
+          <label for="filterDate"><i class="fa-regular fa-calendar"></i> Fecha Seleccionada</label>
+          <div class="date-controls">
+            <button id="btnPrevDay" class="btn-icon" title="Día Anterior"><i class="fa-solid fa-chevron-left"></i></button>
+            <input type="date" id="filterDate" class="input-date" />
+            <button id="btnNextDay" class="btn-icon" title="Día Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+            <button id="btnToday" class="btn-pill">Hoy</button>
+          </div>
+        </div>
+
+        <!-- Doctor / Specialty Search -->
+        <div class="filter-group search-group">
+          <label for="filterSearchDoc"><i class="fa-solid fa-magnifying-glass"></i> Buscar Médico o Especialidad</label>
+          <div class="search-input-wrap">
+            <input type="text" id="filterSearchDoc" class="input-text" placeholder="Ej. Dr. Rossi o Pediatría..." />
+            <button id="btnClearSearch" class="btn-clear"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section Title & Legend -->
+    <div class="view-header">
+      <div class="view-title">
+        <h2 id="gridTitleDay">Consultorios y Asignación Horaria</h2>
+        <p id="gridSubtitle">Horario Abierto del Centro: 07:00 hs a 21:00 hs (Mañana: 07-14h / Tarde: 14-21h)</p>
+      </div>
+      <div class="view-controls">
+        <div class="legend-item"><span class="dot dot-free"></span> Disponible</div>
+        <div class="legend-item"><span class="dot dot-busy"></span> Ocupado por Médico</div>
+        <div class="legend-item"><span class="dot dot-maint"></span> Mantenimiento</div>
+      </div>
+    </div>
+
+    <!-- Day View Container (Rectángulos de los 10 Consultorios) -->
+    <div id="roomsGrid" class="rooms-cards-grid"></div>
+
+    <!-- Week View Container (Vista Semanal Lunes a Viernes) -->
+    <div id="weekGrid" class="week-grid-wrapper d-none"></div>
+
+  </main>
+
+  <!-- MODAL 1: Asignar / Editar Horario de Médico -->
+  <div id="modalAssign" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header header-giovo-blue">
+        <h3 id="modalAssignTitle"><i class="fa-solid fa-calendar-plus"></i> Asignar Médico a Consultorio</h3>
+        <button class="modal-close" data-close="modalAssign">&times;</button>
+      </div>
+      <form id="formAssign">
+        <input type="hidden" id="assignId" />
+        <input type="hidden" id="assignRoomId" />
+        <input type="hidden" id="assignShiftId" />
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="assignDate">Fecha de Atención</label>
+            <input type="date" id="assignDate" class="input-date" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="assignConsultorioSelect">Consultorio</label>
+              <select id="assignConsultorioSelect" class="select-custom" required></select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="assignShiftSelect">Turno / Franja</label>
+              <select id="assignShiftSelect" class="select-custom" required>
+                <option value="MANANA">Mañana (07:00 - 14:00 hs)</option>
+                <option value="TARDE">Tarde (14:00 - 21:00 hs)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="assignDoctorSelect">Seleccionar Médico</label>
+            <select id="assignDoctorSelect" class="select-custom" required></select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="assignStartTime">Hora Inicio</label>
+              <input type="time" id="assignStartTime" class="input-date" value="09:00" required />
+            </div>
+            <div class="form-group flex-1">
+              <label for="assignEndTime">Hora Fin</label>
+              <input type="time" id="assignEndTime" class="input-date" value="14:00" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="assignNotes">Notas u Observaciones (Opcional)</label>
+            <input type="text" id="assignNotes" class="input-text" placeholder="Ej. Realiza ecografías pediátricas" />
+          </div>
+
+          <div id="assignConflictAlert" class="alert-box alert-warning d-none">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="assignConflictText">Advertencia: Conflicto de horario en este consultorio.</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalAssign">Cancelar</button>
+          <button type="submit" class="btn btn-giovo-blue">Guardar Asignación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Buscador Inteligente de Consultorios Libres -->
+  <div id="modalSmart" class="modal-backdrop">
+    <div class="modal-card modal-lg">
+      <div class="modal-header header-giovo-magenta">
+        <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Buscar Consultorio Libre</h3>
+        <button class="modal-close" data-close="modalSmart">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="smartDate">Fecha</label>
+            <input type="date" id="smartDate" class="input-date" />
+          </div>
+          <div class="form-group flex-1">
+            <label for="smartShift">Turno Deseado</label>
+            <select id="smartShift" class="select-custom">
+              <option value="ALL">Cualquier turno (09:00 - 21:00 hs)</option>
+              <option value="MANANA">Mañana (09:00 - 14:00 hs)</option>
+              <option value="TARDE">Tarde (14:00 - 21:00 hs)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Filtrar por Equipamiento Requerido:</label>
+          <div id="smartEqCheckboxes" class="checkbox-group">
+            <label class="checkbox-lbl"><input type="checkbox" value="Camilla" /> Camilla</label>
+            <label class="checkbox-lbl"><input type="checkbox" value="Ecografo" /> Ecógrafo</label>
+            <label class="checkbox-lbl"><input type="checkbox" value="SillonOdonto" /> Sillón Odontológico</label>
+            <label class="checkbox-lbl"><input type="checkbox" value="RayosX" /> Rayos X</label>
+            <label class="checkbox-lbl"><input type="checkbox" value="Negatoscopio" /> Negatoscopio</label>
+          </div>
+        </div>
+
+        <div class="view-header" style="margin-top: 1rem; margin-bottom: 0.5rem;">
+          <h4>Consultorios Libres Encontrados:</h4>
+        </div>
+
+        <div id="smartResults" class="smart-results-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Gestionar Módulos / Turnos -->
+  <div id="modalShifts" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header header-giovo-blue">
+        <h3><i class="fa-solid fa-clock"></i> Configuración de Módulos Horarios</h3>
+        <button class="modal-close" data-close="modalShifts">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- List of existing shifts -->
+        <div class="view-header" style="margin-bottom: 0.5rem; display: block;">
+          <h4 style="font-weight: 700; color: var(--giovo-blue-dark); font-size: 0.95rem;">Módulos Actuales:</h4>
+        </div>
+        <div id="shiftsListContainer" class="shifts-list-container">
+          <!-- Loaded dynamically -->
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;" />
+
+        <!-- Form to add/edit shift -->
+        <form id="formShift">
+          <input type="hidden" id="shiftId" />
+          <div class="view-header" style="margin-bottom: 0.75rem; display: block;">
+            <h4 id="formShiftTitle" style="font-weight: 700; color: var(--giovo-blue-dark); font-size: 0.95rem;">Agregar Nuevo Módulo:</h4>
+          </div>
+          <div class="form-group">
+            <label for="shiftLabel">Nombre del Módulo</label>
+            <input type="text" id="shiftLabel" class="input-text" placeholder="Ej. Tarde 1, Tarde 2, Vespertino" required />
+          </div>
+          <div class="form-row" style="margin-top: 0.75rem;">
+            <div class="form-group flex-1">
+              <label for="shiftStart">Hora Inicio</label>
+              <input type="time" id="shiftStart" class="input-date" required />
+            </div>
+            <div class="form-group flex-1">
+              <label for="shiftEnd">Hora Fin</label>
+              <input type="time" id="shiftEnd" class="input-date" required />
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <label for="shiftIcon">Icono descriptivo</label>
+            <select id="shiftIcon" class="select-custom">
+              <option value="fa-sun">Sol (Mañana/Tarde)</option>
+              <option value="fa-cloud-sun">Sol con nube (Tarde)</option>
+              <option value="fa-moon">Luna (Noche/Vespertino)</option>
+              <option value="fa-clock">Reloj (Estándar)</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;">
+            <button type="button" id="btnCancelShiftEdit" class="btn btn-secondary btn-xs d-none">Cancelar</button>
+            <button type="submit" id="btnSaveShift" class="btn btn-giovo-blue btn-xs">Guardar Módulo</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Main Application Logic Script -->
+  <script src="app.js"></script>
+
+</body>
+</html>
