@@ -21,11 +21,12 @@
 
   // State
   let state = {
-    viewMode: 'week',
+    viewMode: 'day',
     rooms: [],
     doctors: [],
     assignments: [],
     shifts: {},
+    initializedDates: [],
     selectedDate: getTodayString(),
     selectedShift: 'ALL',
     selectedStatus: 'ALL',
@@ -49,7 +50,128 @@
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  const DATA_VERSION = 'giovo_v9_monday_multi_martinez';
+  const DATA_VERSION = 'giovo_v18_annual_calendar';
+
+  // Master schedule template by day of week (0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri)
+  const weeklyTemplate = [
+    // 0: LUNES
+    [
+      { roomId: 'RPSICO', shift: 'TARDE', docSearch: 'ANDRIZZI', startTime: '14:00', endTime: '19:00', notes: 'Psicología' },
+      { roomId: 'R3', shift: 'MANANA', docSearch: 'MARTINEZ', startTime: '12:30', endTime: '15:50', notes: 'Dermatología' },
+      { roomId: 'RLABO', shift: 'MANANA', docSearch: 'PENA', startTime: '07:30', endTime: '10:00', notes: 'Bioquímico' },
+      { roomId: 'R6', shift: 'TARDE', docSearch: 'OLIVERO', startTime: '16:00', endTime: '20:00', notes: 'Endocrinología y Diabetes' },
+      { roomId: 'R2', shift: 'TARDE', docSearch: 'CRESPO', startTime: '15:00', endTime: '18:00', notes: 'Cosmetología' },
+      { roomId: 'R3', shift: 'TARDE', docSearch: 'CHALI', startTime: '16:00', endTime: '20:00', notes: 'Dermatología' },
+      { roomId: 'R1', shift: 'MANANA', docSearch: 'PESCO', startTime: '09:20', endTime: '14:00', notes: 'Dermatología' },
+      { roomId: 'R5', shift: 'TARDE', docSearch: 'TEIJEIRO', startTime: '17:00', endTime: '20:00', notes: 'Neumonología Alergia' },
+      { roomId: 'R1', shift: 'TARDE', docSearch: 'BARAYAZARRA', startTime: '18:00', endTime: '19:00', notes: 'Alergia' },
+      { roomId: 'R5', shift: 'MANANA', docSearch: 'ARRIETA', startTime: '13:15', endTime: '16:15', notes: 'Ginecología' },
+      { roomId: 'R4', shift: 'TARDE', docSearch: 'MISISIAN', startTime: '14:00', endTime: '19:00', notes: 'Ecógrafo' }
+    ],
+    // 1: MARTES
+    [
+      { roomId: 'R1', shift: 'TARDE', docSearch: 'GIOVO', startTime: '16:00', endTime: '19:00', notes: 'Dermatología' },
+      { roomId: 'R4', shift: 'TARDE', docSearch: 'REVUELTA', startTime: '15:00', endTime: '18:30', notes: 'Dermatología' },
+      { roomId: 'RPSICO', shift: 'TARDE', docSearch: 'DIAZ', startTime: '15:30', endTime: '19:00', notes: 'Psicología' },
+      { roomId: 'R3', shift: 'TARDE', docSearch: 'SALICH', startTime: '16:20', endTime: '19:40', notes: 'Dermatología' },
+      { roomId: 'RLABO', shift: 'MANANA', docSearch: 'PENA', startTime: '07:30', endTime: '10:00', notes: 'Bioquímico' },
+      { roomId: 'RLABO', shift: 'TARDE', docSearch: 'PENA', startTime: '15:00', endTime: '18:00', notes: 'Bioquímico' },
+      { roomId: 'R3', shift: 'MANANA', docSearch: 'PESCO', startTime: '13:00', endTime: '16:20', notes: 'Dermatología' },
+      { roomId: 'R1', shift: 'MANANA', docSearch: 'GIANA', startTime: '09:20', endTime: '12:00', notes: 'Dermatología' },
+      { roomId: 'R5', shift: 'TARDE', docSearch: 'GONZALEZ', startTime: '17:30', endTime: '19:30', notes: 'Dermatología' },
+      { roomId: 'R5', shift: 'MANANA', docSearch: 'ORTIZ ROJAS', startTime: '11:20', endTime: '13:00', notes: 'Diabetología' },
+      { roomId: 'R2', shift: 'TARDE', docSearch: 'LUCHETTA', startTime: '16:00', endTime: '19:00', notes: 'Cirugía Plástica' },
+      { roomId: 'R6', shift: 'MANANA', docSearch: 'SCALERANDI', startTime: '14:00', endTime: '15:15', notes: 'Dermatología' },
+      { roomId: 'R6', shift: 'TARDE', docSearch: 'SCALERANDI', startTime: '16:00', endTime: '19:00', notes: 'Dermatología' }
+    ],
+    // 2: MIÉRCOLES
+    [
+      { roomId: 'R4', shift: 'TARDE', docSearch: 'REVUELTA', startTime: '15:00', endTime: '19:45', notes: 'Dermatología' },
+      { roomId: 'R1', shift: 'TARDE', docSearch: 'ARCE', startTime: '16:00', endTime: '19:00', notes: 'Dermatología' },
+      { roomId: 'R5', shift: 'TARDE', docSearch: 'NIEVA', startTime: '15:00', endTime: '19:00', notes: 'Dermatología Infantil' },
+      { roomId: 'RPSICO', shift: 'TARDE', docSearch: 'ACEVEDO', startTime: '15:30', endTime: '20:10', notes: 'Psicología' },
+      { roomId: 'RPSICO', shift: 'MANANA', docSearch: 'ANDRIZZI', startTime: '10:00', endTime: '13:30', notes: 'Psicología' },
+      { roomId: 'RLABO', shift: 'MANANA', docSearch: 'PENA', startTime: '07:30', endTime: '10:00', notes: 'Bioquímico' },
+      { roomId: 'R2', shift: 'TARDE', docSearch: 'CRESPO', startTime: '15:00', endTime: '18:00', notes: 'Cosmetología' },
+      { roomId: 'R3', shift: 'TARDE', docSearch: 'PESCO', startTime: '15:30', endTime: '19:40', notes: 'Dermatología' },
+      { roomId: 'R3', shift: 'MANANA', docSearch: 'HAISAMA', startTime: '10:00', endTime: '14:40', notes: 'Dermatología' },
+      { roomId: 'R6', shift: 'MANANA', docSearch: 'GRINBLAT', startTime: '10:30', endTime: '13:30', notes: 'Pediatría' },
+      { roomId: 'R6', shift: 'TARDE', docSearch: 'ROMANAZZI', startTime: '13:00', endTime: '18:00', notes: 'Dermatología' },
+      { roomId: 'RLABO', shift: 'TARDE', docSearch: 'FUREY', startTime: '15:20', endTime: '17:00', notes: 'Dermatología' }
+    ],
+    // 3: JUEVES
+    [
+      { roomId: 'R1', shift: 'MANANA', docSearch: 'ANDRADE', startTime: '08:15', endTime: '12:00', notes: 'Dermatología' },
+      { roomId: 'R1', shift: 'TARDE', docSearch: 'PALACIO', startTime: '16:00', endTime: '20:00', notes: 'Dermatología' },
+      { roomId: 'RLABO', shift: 'MANANA', docSearch: 'PENA', startTime: '07:30', endTime: '10:00', notes: 'Bioquímico' },
+      { roomId: 'R6', shift: 'TARDE', docSearch: 'VERBERCK', startTime: '17:00', endTime: '18:40', notes: 'Flebología' },
+      { roomId: 'R2', shift: 'MANANA', docSearch: 'CRESPO', startTime: '09:30', endTime: '12:30', notes: 'Cosmetología' },
+      { roomId: 'R4', shift: 'MANANA', docSearch: 'PLUTO', startTime: '09:00', endTime: '11:40', notes: 'Dermatología' },
+      { roomId: 'R5', shift: 'TARDE', docSearch: 'TEIJEIRO', startTime: '17:00', endTime: '20:00', notes: 'Neumonología Alergia' },
+      { roomId: 'RPSICO', shift: 'TARDE', docSearch: 'MOREYRA', startTime: '14:00', endTime: '18:30', notes: 'Psicología' },
+      { roomId: 'R3', shift: 'TARDE', docSearch: 'ORTIZ ROJAS', startTime: '16:00', endTime: '19:00', notes: 'Diabetología' },
+      { roomId: 'R4', shift: 'TARDE', docSearch: 'LUCHETTA', startTime: '16:00', endTime: '19:00', notes: 'Cirugía Plástica' }
+    ],
+    // 4: VIERNES
+    [
+      { roomId: 'R4', shift: 'TARDE', docSearch: 'REVUELTA', startTime: '15:00', endTime: '19:00', notes: 'Dermatología' },
+      { roomId: 'R5', shift: 'TARDE', docSearch: 'NIEVA', startTime: '15:00', endTime: '18:00', notes: 'Dermatología Infantil' },
+      { roomId: 'RPSICO', shift: 'TARDE', docSearch: 'ANDRIZZI', startTime: '15:00', endTime: '19:30', notes: 'Psicología' },
+      { roomId: 'R3', shift: 'TARDE', docSearch: 'PALACIO', startTime: '16:00', endTime: '20:00', notes: 'Dermatología' },
+      { roomId: 'RLABO', shift: 'MANANA', docSearch: 'PENA', startTime: '07:30', endTime: '10:00', notes: 'Bioquímico' },
+      { roomId: 'RLABO', shift: 'TARDE', docSearch: 'PENA', startTime: '16:00', endTime: '18:00', notes: 'Bioquímico' },
+      { roomId: 'R2', shift: 'TARDE', docSearch: 'OLIVERO', startTime: '16:00', endTime: '20:00', notes: 'Endocrinología y Diabetes' },
+      { roomId: 'R1', shift: 'MANANA', docSearch: 'PESCO', startTime: '09:20', endTime: '14:00', notes: 'Dermatología' },
+      { roomId: 'R3', shift: 'MANANA', docSearch: 'HAISAMA', startTime: '11:00', endTime: '14:00', notes: 'Dermatología' },
+      { roomId: 'R6', shift: 'TARDE', docSearch: 'SANTI', startTime: '16:00', endTime: '20:00', notes: 'Endocrinología y Diabetes' },
+      { roomId: 'R5', shift: 'MANANA', docSearch: 'FARRELL', startTime: '09:00', endTime: '13:00', notes: 'Neumonología' }
+    ]
+  ];
+
+  function findDoc(term) {
+    const found = state.doctors.find(d => d.name.toUpperCase().includes(term.toUpperCase()));
+    return found ? found.id : (state.doctors[0]?.id || 'D1');
+  }
+
+  // Ensure that a date has its template assignments initialized
+  function ensureDateInitialized(dateStr) {
+    if (!state.initializedDates) {
+      state.initializedDates = [];
+    }
+
+    if (state.initializedDates.includes(dateStr)) {
+      return;
+    }
+
+    // Determine day of week (0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri)
+    const parts = dateStr.split('-');
+    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+    const dayOfWeek = dateObj.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+    
+    // We only initialize Monday to Friday (1 to 5)
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      const templateIndex = dayOfWeek - 1; // 0 to 4
+      const template = weeklyTemplate[templateIndex];
+      if (template) {
+        template.forEach((item, idx) => {
+          const doctorId = findDoc(item.docSearch);
+          state.assignments.push({
+            id: `A_${dateStr}_${idx + 1}`,
+            date: dateStr,
+            roomId: item.roomId,
+            shift: item.shift,
+            doctorId: doctorId,
+            startTime: item.startTime,
+            endTime: item.endTime,
+            notes: item.notes
+          });
+        });
+      }
+    }
+
+    state.initializedDates.push(dateStr);
+    saveData();
+  }
 
   // Load state from localStorage or seed initial real data
   function initData() {
@@ -57,6 +179,8 @@
     
     if (currentVersion !== DATA_VERSION) {
       localStorage.setItem('giovo_data_version', DATA_VERSION);
+      localStorage.removeItem('giovo_selected_date');
+      state.selectedDate = getTodayString();
       seedInitialData();
     } else {
       const savedRooms = localStorage.getItem(STORAGE_KEYS.ROOMS);
@@ -70,19 +194,13 @@
         state.assignments = JSON.parse(savedAssignments);
         state.shifts = savedShifts ? JSON.parse(savedShifts) : { ...DEFAULT_SHIFTS };
 
+        const savedInitDates = localStorage.getItem('giovo_initialized_dates_v1');
+        state.initializedDates = savedInitDates ? JSON.parse(savedInitDates) : [];
+
         // Ensure Dr. Misisian Tomás is present and has ECOGRAFO specialty
         const misisianDoc = state.doctors.find(d => d.name.toUpperCase().includes('MISISIAN'));
         if (misisianDoc) {
           misisianDoc.specialty = 'ECOGRAFO';
-        } else {
-          state.doctors.push({
-            id: 'D_' + Date.now(),
-            name: 'Dr. MISISIAN TOMÁS',
-            specialty: 'ECOGRAFO',
-            phone: 'Consultorio 6',
-            color: '#06b6d4',
-            notes: 'Ubicación habitual: Consultorio 6'
-          });
         }
         saveData();
       } else {
@@ -102,6 +220,7 @@
     localStorage.setItem(STORAGE_KEYS.DOCTORS, JSON.stringify(state.doctors));
     localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, JSON.stringify(state.assignments));
     localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify(state.shifts));
+    localStorage.setItem('giovo_initialized_dates_v1', JSON.stringify(state.initializedDates));
   }
 
   // Seed Initial Data (Real 34 Doctors and Consultorios for CENTRO GIOVO)
@@ -152,7 +271,8 @@
       { prefix: 'Lic.', name: 'ACEVEDO MARIA BELEN', specialty: 'PSICOLOGIA', roomRef: 'Consultorio Psicología (Psico)', color: '#a855f7' },
       { prefix: 'Lic.', name: 'ANDRIZZI VERÓNICA CECILIA', specialty: 'PSICOLOGIA', roomRef: 'Consultorio Psicología (Psico)', color: '#8b5cf6' },
       { prefix: 'Lic.', name: 'DIAZ YAMEL', specialty: 'PSICOLOGIA', roomRef: 'Consultorio Psicología (Psico)', color: '#6366f1' },
-      { prefix: 'Lic.', name: 'MOREYRA GASTÓN', specialty: 'PSICOLOGIA', roomRef: 'Consultorio Psicología (Psico)', color: '#4f46e5' }
+      { prefix: 'Lic.', name: 'MOREYRA GASTÓN', specialty: 'PSICOLOGIA', roomRef: 'Consultorio Psicología (Psico)', color: '#4f46e5' },
+      { prefix: 'Dra.', name: 'FUREY FABIOLA', specialty: 'DERMATOLOGIA', roomRef: 'Sin consultorio fijo', color: '#10b981' }
     ];
 
     state.doctors = realDoctors.map((d, index) => ({
@@ -164,26 +284,21 @@
       notes: `Ubicación habitual: ${d.roomRef}`
     }));
 
-    // Initial real assignments from CENTRO GIOVO schedule
-    const today = getTodayString();
-    state.assignments = [
-      { id: 'A1', date: today, roomId: 'R1', shift: 'MANANA', doctorId: 'D18', startTime: '09:20', endTime: '14:00', notes: 'Dermatología (Dra. Pesco)' },
-      { id: 'A2', date: today, roomId: 'R1', shift: 'TARDE', doctorId: 'D6', startTime: '14:00', endTime: '21:00', notes: 'Dermatología (Dr. Arce)' },
-      { id: 'A3', date: today, roomId: 'R2', shift: 'MANANA', doctorId: 'D4', startTime: '07:30', endTime: '13:30', notes: 'Cosmetología (Csmt. Crespo)' },
-      { id: 'A4', date: today, roomId: 'R2', shift: 'TARDE', doctorId: 'D3', startTime: '14:00', endTime: '19:00', notes: 'Cirugía Plástica (Dr. Luchetta)' },
-      { id: 'A5', date: today, roomId: 'R3', shift: 'MANANA', doctorId: 'D7', startTime: '08:00', endTime: '14:00', notes: 'Dermatología (Dra. Chali)' },
-      { id: 'A6', date: today, roomId: 'R4', shift: 'MANANA', doctorId: 'D1', startTime: '08:00', endTime: '12:00', notes: 'Alergia (Dra. De Barayazarra)' },
-      { id: 'A7', date: '2026-08-03', roomId: 'R4', shift: 'TARDE', doctorId: 'D12', startTime: '12:30', endTime: '15:50', notes: 'Dermatología (Dra. Martinez) - Lunes' },
-      { id: 'A16', date: '2026-08-03', roomId: 'R4', shift: 'TARDE', doctorId: 'D1', startTime: '18:00', endTime: '21:00', notes: 'Alergia (Dra. De Barayazarra) - Lunes' },
-      { id: 'A8', date: today, roomId: 'R5', shift: 'MANANA', doctorId: 'D20', startTime: '08:00', endTime: '13:30', notes: 'Dermatología Infantil (Dra. Nieva)' },
-      { id: 'A9', date: today, roomId: 'R5', shift: 'TARDE', doctorId: 'D27', startTime: '14:00', endTime: '20:00', notes: 'Ginecología (Dra. Arrieta)' },
-      { id: 'A10', date: today, roomId: 'R6', shift: 'MANANA', doctorId: 'D22', startTime: '08:00', endTime: '13:00', notes: 'Diagnóstico por Imágenes (Dr. Misisian)' },
-      { id: 'A11', date: today, roomId: 'R6', shift: 'TARDE', doctorId: 'D30', startTime: '14:00', endTime: '20:30', notes: 'Pediatría (Dra. Grinblat)' },
-      { id: 'A12', date: today, roomId: 'RLABO', shift: 'MANANA', doctorId: 'D2', startTime: '07:00', endTime: '14:00', notes: 'Extracciones y análisis (Bioq. Pena)' },
-      { id: 'A13', date: today, roomId: 'RPSICO', shift: 'TARDE', doctorId: 'D31', startTime: '15:30', endTime: '20:10', notes: 'Sesiones individuales (Lic. Acevedo)' },
-      { id: 'A14', date: today, roomId: 'RPSICO', shift: 'TARDE', doctorId: 'D32', startTime: '14:00', endTime: '20:00', notes: 'Sesiones de psicología (Lic. Andrizzi)' },
-      { id: 'A15', date: '2026-08-03', roomId: 'RPSICO', shift: 'TARDE', doctorId: 'D32', startTime: '14:00', endTime: '19:00', notes: 'Sesiones de psicología (Lic. Andrizzi) - Lunes' }
-    ];
+    state.assignments = [];
+    state.initializedDates = [];
+
+    const currentWeekDates = getWeekDates(state.selectedDate);
+    currentWeekDates.forEach(w => {
+      ensureDateInitialized(w.dateStr);
+    });
+
+    // Also ensure 2026-08-03 week if distinct
+    const monWeek = getWeekDates('2026-08-03');
+    if (monWeek[0].dateStr !== currentWeekDates[0].dateStr) {
+      monWeek.forEach(w => {
+        ensureDateInitialized(w.dateStr);
+      });
+    }
 
     state.shifts = { ...DEFAULT_SHIFTS };
     saveData();
@@ -228,6 +343,7 @@
     if (dateInput) {
       dateInput.addEventListener('change', (e) => {
         state.selectedDate = e.target.value;
+        localStorage.setItem('giovo_selected_date', state.selectedDate);
         renderAll();
       });
     }
@@ -236,6 +352,7 @@
     document.getElementById('btnNextDay')?.addEventListener('click', () => changeDateOffset(1));
     document.getElementById('btnToday')?.addEventListener('click', () => {
       state.selectedDate = getTodayString();
+      localStorage.setItem('giovo_selected_date', state.selectedDate);
       if (dateInput) dateInput.value = state.selectedDate;
       renderAll();
     });
@@ -326,9 +443,6 @@
     document.getElementById('smartDocSelect')?.addEventListener('change', updateSmartFinderResults);
     document.getElementById('smartDate')?.addEventListener('change', updateSmartFinderResults);
     document.getElementById('smartShift')?.addEventListener('change', updateSmartFinderResults);
-    document.querySelectorAll('#smartEqCheckboxes input').forEach(cb => {
-      cb.addEventListener('change', updateSmartFinderResults);
-    });
 
     // Shift management event listeners
     document.getElementById('btnManageShifts')?.addEventListener('click', openShiftsModal);
@@ -365,6 +479,7 @@
     const mm = String(current.getMonth() + 1).padStart(2, '0');
     const dd = String(current.getDate()).padStart(2, '0');
     state.selectedDate = `${yyyy}-${mm}-${dd}`;
+    localStorage.setItem('giovo_selected_date', state.selectedDate);
     const dateInput = document.getElementById('filterDate');
     if (dateInput) dateInput.value = state.selectedDate;
     renderAll();
@@ -399,15 +514,26 @@
 
   // Main Render Controller
   function renderAll() {
+    // Ensure dynamic template initialization on-the-fly for requested dates
+    ensureDateInitialized(state.selectedDate);
+    const weekDates = getWeekDates(state.selectedDate);
+    weekDates.forEach(w => ensureDateInitialized(w.dateStr));
+
     renderKPIs();
     const roomsGridEl = document.getElementById('roomsGrid');
     const weekGridEl = document.getElementById('weekGrid');
+    const btnDay = document.getElementById('btnDayView');
+    const btnWeek = document.getElementById('btnWeekView');
 
     if (state.viewMode === 'day') {
+      if (btnDay) btnDay.classList.add('active');
+      if (btnWeek) btnWeek.classList.remove('active');
       renderGrid();
       if (roomsGridEl) roomsGridEl.classList.remove('d-none');
       if (weekGridEl) weekGridEl.classList.add('d-none');
     } else {
+      if (btnWeek) btnWeek.classList.add('active');
+      if (btnDay) btnDay.classList.remove('active');
       renderWeek();
       if (roomsGridEl) roomsGridEl.classList.add('d-none');
       if (weekGridEl) weekGridEl.classList.remove('d-none');
@@ -519,6 +645,9 @@
                       <span style="font-size:0.7rem; color:var(--text-muted); font-weight:600;"><i class="fa-regular fa-clock"></i> ${assignment.startTime}-${assignment.endTime}</span>
                       <button class="btn btn-secondary btn-xs" style="padding: 1px 5px; font-size: 0.68rem;" onclick="MediApp.editAssignment('${assignment.id}')" title="Editar">
                         <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button class="btn btn-danger btn-xs" style="padding: 1px 5px; font-size: 0.68rem; margin-left: 2px;" onclick="MediApp.removeAssignment('${assignment.id}')" title="Liberar">
+                        <i class="fa-solid fa-trash-can"></i>
                       </button>
                     </div>
                   </div>
@@ -676,7 +805,7 @@
                   </div>
                   <div class="slot-actions">
                     <button class="btn btn-secondary btn-xs" onclick="MediApp.editAssignment('${assignment.id}')" title="Modificar horas, notas o médico">
-                      <i class="fa-solid fa-pen"></i> Editar Horario
+                      <i class="fa-solid fa-pen"></i> Editar
                     </button>
                     <button class="btn btn-secondary btn-xs" onclick="MediApp.reassignDoctor('${assignment.id}')" title="Mover o cambiar de consultorio">
                       <i class="fa-solid fa-arrow-right-arrow-left"></i> Reubicar
@@ -1125,29 +1254,27 @@
 
     const doctor = state.doctors.find(d => d.id === selectedDocId);
 
-    // Selected Equipment Filters
-    const requiredEq = Array.from(document.querySelectorAll('#smartEqCheckboxes input:checked')).map(cb => cb.value);
-
     // Find available rooms for this date & shift
     const availableRooms = state.rooms.filter(room => {
       if (room.status === 'MAINT') return false;
 
       // Check if room is already occupied at this date & shift
+      if (shift === 'ALL') {
+        const hasAnyShiftBusy = state.assignments.some(a => a.date === date && a.roomId === room.id);
+        return !hasAnyShiftBusy;
+      }
+
       const isOccupied = state.assignments.some(a => 
         a.date === date && a.roomId === room.id && a.shift === shift
       );
-      if (isOccupied) return false;
-
-      // Check equipment requirements
-      const matchesEq = requiredEq.every(eq => room.equipment.includes(eq));
-      return matchesEq;
+      return !isOccupied;
     });
 
     if (availableRooms.length === 0) {
       container.innerHTML = `
         <div class="alert-box alert-warning">
           <i class="fa-solid fa-triangle-exclamation"></i>
-          <span>No hay consultorios libres que cumplan exactamente con los requisitos seleccionados para este turno.</span>
+          <span>No hay consultorios libres disponibles para la fecha y turno seleccionados.</span>
         </div>
       `;
       return;

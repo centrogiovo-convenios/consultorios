@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <link rel="icon" type="image/png" href="logo.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CENTRO GIOVO – Disponibilidad de Consultorios</title>
@@ -202,6 +201,11 @@
         <button class="modal-close" data-close="modalSmart">&times;</button>
       </div>
       <div class="modal-body">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="smartDocSelect">Médico a Reubicar / Asignar</label>
+          <select id="smartDocSelect" class="select-custom" style="width: 100%;"></select>
+        </div>
+
         <div class="form-row">
           <div class="form-group flex-1">
             <label for="smartDate">Fecha</label>
@@ -210,23 +214,13 @@
           <div class="form-group flex-1">
             <label for="smartShift">Turno Deseado</label>
             <select id="smartShift" class="select-custom">
-              <option value="ALL">Cualquier turno (09:00 - 21:00 hs)</option>
-              <option value="MANANA">Mañana (09:00 - 14:00 hs)</option>
-              <option value="TARDE">Tarde (14:00 - 21:00 hs)</option>
+              <option value="ALL">Cualquier turno</option>
+              <option value="MANANA">Mañana</option>
+              <option value="TARDE">Tarde</option>
             </select>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Filtrar por Equipamiento Requerido:</label>
-          <div id="smartEqCheckboxes" class="checkbox-group">
-            <label class="checkbox-lbl"><input type="checkbox" value="Camilla" /> Camilla</label>
-            <label class="checkbox-lbl"><input type="checkbox" value="Ecografo" /> Ecógrafo</label>
-            <label class="checkbox-lbl"><input type="checkbox" value="SillonOdonto" /> Sillón Odontológico</label>
-            <label class="checkbox-lbl"><input type="checkbox" value="RayosX" /> Rayos X</label>
-            <label class="checkbox-lbl"><input type="checkbox" value="Negatoscopio" /> Negatoscopio</label>
-          </div>
-        </div>
 
         <div class="view-header" style="margin-top: 1rem; margin-bottom: 0.5rem;">
           <h4>Consultorios Libres Encontrados:</h4>
