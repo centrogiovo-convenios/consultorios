@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <link rel="icon" type="image/png" href="logo.png">
@@ -55,6 +55,12 @@
       <div class="header-actions">
         <button id="btnQuickAssign" class="btn btn-giovo-blue">
           <i class="fa-solid fa-plus-circle"></i> Asignar Médico
+        </button>
+        <button id="btnHeaderAddDoctor" class="btn btn-emerald">
+          <i class="fa-solid fa-user-plus"></i> + Nuevo Profesional
+        </button>
+        <button id="btnDirectoryDoctors" class="btn btn-secondary">
+          <i class="fa-solid fa-users"></i> Directorio Médicos
         </button>
         <button id="btnSmartFinder" class="btn btn-giovo-magenta">
           <i class="fa-solid fa-wand-magic-sparkles"></i> Buscar Libre
@@ -160,7 +166,12 @@
           </div>
 
           <div class="form-group">
-            <label for="assignDoctorSelect">Seleccionar Médico</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label for="assignDoctorSelect" style="margin-bottom: 0;">Seleccionar Médico / Profesional</label>
+              <button type="button" id="btnQuickCreateDocFromAssign" class="btn btn-secondary btn-xs" style="padding: 2px 8px; font-size: 0.75rem;">
+                <i class="fa-solid fa-user-plus"></i> + Nuevo Profesional
+              </button>
+            </div>
             <select id="assignDoctorSelect" class="select-custom" required></select>
           </div>
 
@@ -286,6 +297,72 @@
           </div>
         </form>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Agregar / Editar Profesional Médico -->
+  <div id="modalDoctor" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header header-giovo-blue">
+        <h3 id="modalDoctorTitle"><i class="fa-solid fa-user-plus"></i> Incorporación de Nuevo Profesional</h3>
+        <button class="modal-close" data-close="modalDoctor">&times;</button>
+      </div>
+      <form id="formDoctor">
+        <input type="hidden" id="editDoctorId" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="docName">Nombre Completo y Título (Dr., Dra., Lic., Bioq., Csmt., etc.)</label>
+            <input type="text" id="docName" class="input-text" placeholder="Ej. Dr. PÉREZ JUAN CARLOS o Lic. LÓPEZ MARÍA" required />
+          </div>
+
+          <div class="form-row" style="margin-top: 0.75rem;">
+            <div class="form-group flex-1">
+              <label for="docSpecialty">Especialidad</label>
+              <input type="text" id="docSpecialty" class="input-text" placeholder="Ej. DERMATOLOGIA, PEDIATRIA, etc." required />
+            </div>
+            <div class="form-group" style="width: 100px;">
+              <label for="docColor">Color</label>
+              <input type="color" id="docColor" class="input-color" value="#3b82f6" style="height: 38px; width: 100%; cursor: pointer; padding: 2px; border-radius: 6px;" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <label for="docPhone">Consultorio Habitual / Teléfono / Ubicación</label>
+            <input type="text" id="docPhone" class="input-text" placeholder="Ej. Consultorio 3 o Sin consultorio fijo" />
+          </div>
+
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <label for="docNotes">Observaciones o Notas (Opcional)</label>
+            <input type="text" id="docNotes" class="input-text" placeholder="Ej. Atiende adultos, niños o ecografías" />
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 1.25rem;">
+          <button type="button" class="btn btn-secondary" data-close="modalDoctor">Cancelar</button>
+          <button type="submit" class="btn btn-giovo-blue"><i class="fa-solid fa-check"></i> Guardar Profesional</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 5: Directorio de Profesionales de Centro Giovo -->
+  <div id="modalDirectoryDoctors" class="modal-backdrop">
+    <div class="modal-card modal-lg">
+      <div class="modal-header header-giovo-blue">
+        <h3><i class="fa-solid fa-users"></i> Directorio de Profesionales</h3>
+        <button class="modal-close" data-close="modalDirectoryDoctors">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 250px;">
+            <input type="text" id="filterDirectoryDoc" class="input-text" placeholder="Filtrar profesionales por nombre o especialidad..." />
+          </div>
+          <button type="button" id="btnAddDoctorFromDirectory" class="btn btn-emerald btn-sm">
+            <i class="fa-solid fa-user-plus"></i> + Agregar Profesional
+          </button>
+        </div>
+        <div id="doctorsGrid" class="doctors-grid" style="max-height: 60vh; overflow-y: auto; padding: 4px;"></div>
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    MediConsult - Application Logic & State Management (Scale: 34 Profesionales)
    ========================================================================== */
 
@@ -175,37 +175,23 @@
 
   // Load state from localStorage or seed initial real data
   function initData() {
-    const currentVersion = localStorage.getItem('giovo_data_version');
-    
-    if (currentVersion !== DATA_VERSION) {
-      localStorage.setItem('giovo_data_version', DATA_VERSION);
-      localStorage.removeItem('giovo_selected_date');
-      state.selectedDate = getTodayString();
-      seedInitialData();
+    const savedRooms = localStorage.getItem(STORAGE_KEYS.ROOMS);
+    const savedDoctors = localStorage.getItem(STORAGE_KEYS.DOCTORS);
+    const savedAssignments = localStorage.getItem(STORAGE_KEYS.ASSIGNMENTS);
+    const savedShifts = localStorage.getItem(STORAGE_KEYS.SHIFTS);
+
+    if (savedRooms && savedDoctors && savedAssignments) {
+      state.rooms = JSON.parse(savedRooms);
+      state.doctors = JSON.parse(savedDoctors);
+      state.assignments = JSON.parse(savedAssignments);
+      state.shifts = savedShifts ? JSON.parse(savedShifts) : { ...DEFAULT_SHIFTS };
+
+      const savedInitDates = localStorage.getItem('giovo_initialized_dates_v1');
+      state.initializedDates = savedInitDates ? JSON.parse(savedInitDates) : [];
+
+      saveData();
     } else {
-      const savedRooms = localStorage.getItem(STORAGE_KEYS.ROOMS);
-      const savedDoctors = localStorage.getItem(STORAGE_KEYS.DOCTORS);
-      const savedAssignments = localStorage.getItem(STORAGE_KEYS.ASSIGNMENTS);
-      const savedShifts = localStorage.getItem(STORAGE_KEYS.SHIFTS);
-
-      if (savedRooms && savedDoctors && savedAssignments) {
-        state.rooms = JSON.parse(savedRooms);
-        state.doctors = JSON.parse(savedDoctors);
-        state.assignments = JSON.parse(savedAssignments);
-        state.shifts = savedShifts ? JSON.parse(savedShifts) : { ...DEFAULT_SHIFTS };
-
-        const savedInitDates = localStorage.getItem('giovo_initialized_dates_v1');
-        state.initializedDates = savedInitDates ? JSON.parse(savedInitDates) : [];
-
-        // Ensure Dr. Misisian Tomás is present and has ECOGRAFO specialty
-        const misisianDoc = state.doctors.find(d => d.name.toUpperCase().includes('MISISIAN'));
-        if (misisianDoc) {
-          misisianDoc.specialty = 'ECOGRAFO';
-        }
-        saveData();
-      } else {
-        seedInitialData();
-      }
+      seedInitialData();
     }
 
     // Set date input value
@@ -411,6 +397,19 @@
 
     document.getElementById('btnQuickCreateDocFromAssign')?.addEventListener('click', () => {
       openDoctorModal(null, true);
+    });
+
+    document.getElementById('btnDirectoryDoctors')?.addEventListener('click', () => {
+      renderDoctors();
+      openModal('modalDirectoryDoctors');
+    });
+
+    document.getElementById('btnAddDoctorFromDirectory')?.addEventListener('click', () => {
+      openDoctorModal();
+    });
+
+    document.getElementById('filterDirectoryDoc')?.addEventListener('input', (e) => {
+      renderDoctors(e.target.value);
     });
 
     document.getElementById('btnAddRoomModal')?.addEventListener('click', () => {
@@ -915,33 +914,45 @@
   }
 
   // Render TAB 3: Doctors Directory (34 Professionals)
-  function renderDoctors() {
+  function renderDoctors(filterText = '') {
     const container = document.getElementById('doctorsGrid');
     if (!container) return;
 
-    container.innerHTML = state.doctors.map(doc => {
-      const initial = doc.name.replace('Dr. ', '').replace('Dra. ', '').charAt(0) || 'M';
-      return `
+    const term = (filterText || document.getElementById('filterDirectoryDoc')?.value || '').toLowerCase().trim();
+
+    const filtered = state.doctors.filter(d => {
+      if (!term) return true;
+      return d.name.toLowerCase().includes(term) || d.specialty.toLowerCase().includes(term);
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">No se encontraron profesionales con ese criterio.</div>;
+      return;
+    }
+
+    container.innerHTML = filtered.map(doc => {
+      const initial = doc.name.replace('Dr. ', '').replace('Dra. ', '').replace('Lic. ', '').replace('Bioq. ', '').replace('Csmt. ', '').charAt(0) || 'M';
+      return 
         <div class="doc-card-item">
           <div>
             <div class="doc-card-top">
-              <div class="doc-card-avatar" style="background-color: ${doc.color};">${initial}</div>
+              <div class="doc-card-avatar" style="background-color: {doc.color};">{initial}</div>
               <div class="doc-card-meta">
-                <h3>${doc.name}</h3>
-                <p>${doc.specialty}</p>
+                <h3>{doc.name}</h3>
+                <p>{doc.specialty}</p>
               </div>
             </div>
             <div class="doc-card-details" style="margin-top: 1rem;">
-              <div><i class="fa-solid fa-phone"></i> ${doc.phone || 'Sin contacto directo'}</div>
-              <div><i class="fa-solid fa-note-sticky"></i> ${doc.notes || 'Sin notas adicionales'}</div>
+              <div><i class="fa-solid fa-location-dot"></i> {doc.phone || 'Sin consultorio fijo'}</div>
+              <div><i class="fa-solid fa-note-sticky"></i> {doc.notes || 'Sin notas adicionales'}</div>
             </div>
           </div>
           <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem;">
-            <button class="btn btn-secondary btn-xs" onclick="MediApp.editDoctor('${doc.id}')"><i class="fa-solid fa-pen"></i> Editar</button>
-            <button class="btn btn-danger btn-xs" onclick="MediApp.deleteDoctor('${doc.id}')"><i class="fa-solid fa-trash"></i> Eliminar</button>
+            <button class="btn btn-secondary btn-xs" onclick="MediApp.editDoctor('{doc.id}')"><i class="fa-solid fa-pen"></i> Editar</button>
+            <button class="btn btn-danger btn-xs" onclick="MediApp.deleteDoctor('{doc.id}')"><i class="fa-solid fa-trash"></i> Eliminar</button>
           </div>
         </div>
-      `;
+      ;
     }).join('');
   }
 
@@ -1374,25 +1385,27 @@
 
     saveData();
     renderDoctors();
-    renderGrid();
+    renderAll();
     closeModal('modalDoctor');
 
-    if (autoSelectNewDoctorInAssign) {
-      populateDoctorDropdowns(newDocId);
-      autoSelectNewDoctorInAssign = false;
-    }
+    populateDoctorDropdowns(autoSelectNewDoctorInAssign ? newDocId : null);
+    autoSelectNewDoctorInAssign = false;
 
-    showToast(`Profesional ${name} registrado con éxito (${state.doctors.length} médicos en total)`, 'success');
+    showToast(Profesional {name} guardado con éxito ({state.doctors.length} en el directorio), 'success');
   }
 
   function deleteDoctor(docId) {
-    if (confirm('¿Desea eliminar este médico del directorio?')) {
+    const doc = state.doctors.find(d => d.id === docId);
+    const docName = doc ? doc.name : 'este médico';
+    if (confirm(¿Desea eliminar a {docName} del directorio?)) {
       state.doctors = state.doctors.filter(d => d.id !== docId);
       saveData();
       renderDoctors();
-      renderGrid();
-      showToast('Médico eliminado', 'warning');
+      renderAll();
+      populateDoctorDropdowns();
+      showToast('Profesional eliminado del directorio', 'warning');
     }
+  }
   }
 
   // Room CRUD
