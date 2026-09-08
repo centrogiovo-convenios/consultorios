@@ -21,7 +21,7 @@
 
   // State
   let state = {
-    viewMode: 'day',
+    viewMode: 'week',
     rooms: [],
     doctors: [],
     assignments: [],
@@ -139,7 +139,9 @@
       state.initializedDates = [];
     }
 
-    if (state.initializedDates.includes(dateStr)) {
+    // Check if this date already has assignments
+    const existing = state.assignments.filter(a => a.date === dateStr);
+    if (existing.length > 0 && state.initializedDates.includes(dateStr)) {
       return;
     }
 
@@ -926,33 +928,33 @@
     });
 
     if (filtered.length === 0) {
-      container.innerHTML = <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">No se encontraron profesionales con ese criterio.</div>;
+      container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">No se encontraron profesionales con ese criterio.</div>`;
       return;
     }
 
     container.innerHTML = filtered.map(doc => {
       const initial = doc.name.replace('Dr. ', '').replace('Dra. ', '').replace('Lic. ', '').replace('Bioq. ', '').replace('Csmt. ', '').charAt(0) || 'M';
-      return 
+      return `
         <div class="doc-card-item">
           <div>
             <div class="doc-card-top">
-              <div class="doc-card-avatar" style="background-color: {doc.color};">{initial}</div>
+              <div class="doc-card-avatar" style="background-color: ${doc.color};">${initial}</div>
               <div class="doc-card-meta">
-                <h3>{doc.name}</h3>
-                <p>{doc.specialty}</p>
+                <h3>${doc.name}</h3>
+                <p>${doc.specialty}</p>
               </div>
             </div>
             <div class="doc-card-details" style="margin-top: 1rem;">
-              <div><i class="fa-solid fa-location-dot"></i> {doc.phone || 'Sin consultorio fijo'}</div>
-              <div><i class="fa-solid fa-note-sticky"></i> {doc.notes || 'Sin notas adicionales'}</div>
+              <div><i class="fa-solid fa-location-dot"></i> ${doc.phone || 'Sin consultorio fijo'}</div>
+              <div><i class="fa-solid fa-note-sticky"></i> ${doc.notes || 'Sin notas adicionales'}</div>
             </div>
           </div>
           <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem;">
-            <button class="btn btn-secondary btn-xs" onclick="MediApp.editDoctor('{doc.id}')"><i class="fa-solid fa-pen"></i> Editar</button>
-            <button class="btn btn-danger btn-xs" onclick="MediApp.deleteDoctor('{doc.id}')"><i class="fa-solid fa-trash"></i> Eliminar</button>
+            <button class="btn btn-secondary btn-xs" onclick="MediApp.editDoctor('${doc.id}')"><i class="fa-solid fa-pen"></i> Editar</button>
+            <button class="btn btn-danger btn-xs" onclick="MediApp.deleteDoctor('${doc.id}')"><i class="fa-solid fa-trash"></i> Eliminar</button>
           </div>
         </div>
-      ;
+      `;
     }).join('');
   }
 
@@ -1391,13 +1393,13 @@
     populateDoctorDropdowns(autoSelectNewDoctorInAssign ? newDocId : null);
     autoSelectNewDoctorInAssign = false;
 
-    showToast(Profesional {name} guardado con éxito ({state.doctors.length} en el directorio), 'success');
+    showToast(`Profesional ${name} guardado con éxito (${state.doctors.length} en el directorio)`, 'success');
   }
 
   function deleteDoctor(docId) {
     const doc = state.doctors.find(d => d.id === docId);
     const docName = doc ? doc.name : 'este médico';
-    if (confirm(¿Desea eliminar a {docName} del directorio?)) {
+    if (confirm(`¿Desea eliminar a ${docName} del directorio?`)) {
       state.doctors = state.doctors.filter(d => d.id !== docId);
       saveData();
       renderDoctors();
@@ -1405,7 +1407,6 @@
       populateDoctorDropdowns();
       showToast('Profesional eliminado del directorio', 'warning');
     }
-  }
   }
 
   // Room CRUD
