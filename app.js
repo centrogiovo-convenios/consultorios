@@ -21,7 +21,7 @@
 
   // State
   let state = {
-    viewMode: 'week',
+    viewMode: 'day',
     rooms: [],
     doctors: [],
     assignments: [],
@@ -52,8 +52,41 @@
 
   const DATA_VERSION = 'giovo_v18_annual_calendar';
 
-  // Master schedule template by day of week (0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri)
-  const weeklyTemplate = [
+  // Helpers for periodic attendance (semanas puntuales del mes)
+  function getWeekOfMonth(dateStr) {
+    const parts = dateStr.split('-');
+    const dayOfMonth = parseInt(parts[2], 10);
+    return Math.ceil(dayOfMonth / 7); // 1, 2, 3, 4, 5
+  }
+
+  function isDoctorActiveThisWeek(dateStr, frequency) {
+    if (!frequency || frequency === 'ALL') return true;
+    if (frequency === 'ONCE') return true;
+    const weekNum = getWeekOfMonth(dateStr);
+    if (frequency === 'WEEK_1_3') return weekNum === 1 || weekNum === 3;
+    if (frequency === 'WEEK_2_4') return weekNum === 2 || weekNum === 4;
+    if (frequency === 'WEEK_1') return weekNum === 1;
+    if (frequency === 'WEEK_2') return weekNum === 2;
+    if (frequency === 'WEEK_3') return weekNum === 3;
+    if (frequency === 'WEEK_4') return weekNum === 4;
+    return true;
+  }
+
+  function getFrequencyLabel(freq) {
+    switch (freq) {
+      case 'WEEK_1_3': return '1Â° y 3Â° semana del mes';
+      case 'WEEK_2_4': return '2Â° y 4Â° semana del mes';
+      case 'WEEK_1': return 'Solo 1Â° semana del mes';
+      case 'WEEK_2': return 'Solo 2Â° semana del mes';
+      case 'WEEK_3': return 'Solo 3Â° semana del mes';
+      case 'WEEK_4': return 'Solo 4Â° semana del mes';
+      case 'ONCE': return 'Fecha puntual';
+      default: return 'Semanal regular';
+    }
+  }
+
+  // Master schedule template default by day of week (0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri)
+  const DEFAULT_WEEKLY_TEMPLATE = [
     // 0: LUNES
     [
       { roomId: 'RPSICO', shift: 'TARDE', docSearch: 'ANDRIZZI', startTime: '14:00', endTime: '19:00', notes: 'Psicología' },
@@ -139,9 +172,7 @@
       state.initializedDates = [];
     }
 
-    // Check if this date already has assignments
-    const existing = state.assignments.filter(a => a.date === dateStr);
-    if (existing.length > 0 && state.initializedDates.includes(dateStr)) {
+    if (state.initializedDates.includes(dateStr)) {
       return;
     }
 
@@ -177,23 +208,37 @@
 
   // Load state from localStorage or seed initial real data
   function initData() {
-    const savedRooms = localStorage.getItem(STORAGE_KEYS.ROOMS);
-    const savedDoctors = localStorage.getItem(STORAGE_KEYS.DOCTORS);
-    const savedAssignments = localStorage.getItem(STORAGE_KEYS.ASSIGNMENTS);
-    const savedShifts = localStorage.getItem(STORAGE_KEYS.SHIFTS);
-
-    if (savedRooms && savedDoctors && savedAssignments) {
-      state.rooms = JSON.parse(savedRooms);
-      state.doctors = JSON.parse(savedDoctors);
-      state.assignments = JSON.parse(savedAssignments);
-      state.shifts = savedShifts ? JSON.parse(savedShifts) : { ...DEFAULT_SHIFTS };
-
-      const savedInitDates = localStorage.getItem('giovo_initialized_dates_v1');
-      state.initializedDates = savedInitDates ? JSON.parse(savedInitDates) : [];
-
-      saveData();
-    } else {
+    const currentVersion = localStorage.getItem('giovo_data_version');
+    
+    if (currentVersion !== DATA_VERSION) {
+      localStorage.setItem('giovo_data_version', DATA_VERSION);
+      localStorage.removeItem('giovo_selected_date');
+      state.selectedDate = getTodayString();
       seedInitialData();
+    } else {
+      const savedRooms = localStorage.getItem(STORAGE_KEYS.ROOMS);
+      const savedDoctors = localStorage.getItem(STORAGE_KEYS.DOCTORS);
+      const savedAssignments = localStorage.getItem(STORAGE_KEYS.ASSIGNMENTS);
+      const savedShifts = localStorage.getItem(STORAGE_KEYS.SHIFTS);
+
+      if (savedRooms && savedDoctors && savedAssignments) {
+        state.rooms = JSON.parse(savedRooms);
+        state.doctors = JSON.parse(savedDoctors);
+        state.assignments = JSON.parse(savedAssignments);
+        state.shifts = savedShifts ? JSON.parse(savedShifts) : { ...DEFAULT_SHIFTS };
+
+        const savedInitDates = localStorage.getItem('giovo_initialized_dates_v1');
+        state.initializedDates = savedInitDates ? JSON.parse(savedInitDates) : [];
+
+        // Ensure Dr. Misisian Tomás is present and has ECOGRAFO specialty
+        const misisianDoc = state.doctors.find(d => d.name.toUpperCase().includes('MISISIAN'));
+        if (misisianDoc) {
+          misisianDoc.specialty = 'ECOGRAFO';
+        }
+        saveData();
+      } else {
+        seedInitialData();
+      }
     }
 
     // Set date input value
@@ -288,6 +333,7 @@
       });
     }
 
+    state.weeklyTemplate = JSON.parse(JSON.stringify(DEFAULT_WEEKLY_TEMPLATE));
     state.shifts = { ...DEFAULT_SHIFTS };
     saveData();
   }
@@ -413,6 +459,9 @@
     document.getElementById('filterDirectoryDoc')?.addEventListener('input', (e) => {
       renderDoctors(e.target.value);
     });
+
+    document.getElementById('btnRemoveAllWeeks')?.addEventListener('click', handleConfirmRemoveAllWeeks);
+    document.getElementById('btnRemoveOnlyThisDate')?.addEventListener('click', handleConfirmRemoveOnlyDate);
 
     document.getElementById('btnAddRoomModal')?.addEventListener('click', () => {
       openRoomModal();
@@ -638,21 +687,55 @@
                   if (!matchDoc && !matchSpec) return;
                 }
 
-                html += `
-                  <div class="week-card-shift week-shift-busy" style="border-left-color: ${docColor}; margin-bottom: 4px;">
-                    <div class="week-doc-name" style="font-weight:700;">${docName}</div>
-                    <div class="week-doc-spec">${docSpec}</div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                      <span style="font-size:0.7rem; color:var(--text-muted); font-weight:600;"><i class="fa-regular fa-clock"></i> ${assignment.startTime}-${assignment.endTime}</span>
-                      <button class="btn btn-secondary btn-xs" style="padding: 1px 5px; font-size: 0.68rem;" onclick="MediApp.editAssignment('${assignment.id}')" title="Editar">
-                        <i class="fa-solid fa-pen"></i>
-                      </button>
-                      <button class="btn btn-danger btn-xs" style="padding: 1px 5px; font-size: 0.68rem; margin-left: 2px;" onclick="MediApp.removeAssignment('${assignment.id}')" title="Liberar">
-                        <i class="fa-solid fa-trash-can"></i>
-                      </button>
+                const isActiveThisWeek = isDoctorActiveThisWeek(w.dateStr, assignment.frequency);
+
+                if (isActiveThisWeek) {
+                  html += `
+                    <div class="week-card-shift week-shift-busy" style="border-left-color: ${docColor}; margin-bottom: 4px;">
+                      <div class="week-doc-name" style="font-weight:700;">${docName}</div>
+                      <div class="week-doc-spec">${docSpec}</div>
+                      ${assignment.frequency && assignment.frequency !== 'ALL' ? `<div style="font-size:0.68rem; color:var(--giovo-blue); font-weight:600;"><i class="fa-solid fa-repeat"></i> ${getFrequencyLabel(assignment.frequency)}</div>` : ''}
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                        <span style="font-size:0.7rem; color:var(--text-muted); font-weight:600;"><i class="fa-regular fa-clock"></i> ${assignment.startTime}-${assignment.endTime}</span>
+                        <div style="display:flex; gap:2px;">
+                          <button class="btn btn-secondary btn-xs" style="padding: 1px 5px; font-size: 0.68rem;" onclick="MediApp.editAssignment('${assignment.id}')" title="Editar">
+                            <i class="fa-solid fa-pen"></i>
+                          </button>
+                          <button class="btn btn-danger btn-xs" style="padding: 1px 5px; font-size: 0.68rem;" onclick="MediApp.removeAssignment('${assignment.id}')" title="Liberar">
+                            <i class="fa-solid fa-trash-can"></i>
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                `;
+                  `;
+                } else {
+                  // Inactive this week -> Display in GREY as requested
+                  html += `
+                    <div class="week-card-shift week-doc-inactive" style="border-left: 3px dashed #94a3b8; background: #f8fafc; margin-bottom: 4px;" title="${docName} tiene este espacio asignado (${getFrequencyLabel(assignment.frequency)}), pero NO atiende en esta semana puntual.">
+                      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                          <div class="week-doc-name" style="font-weight:700; color:#64748b;">${docName}</div>
+                          <div class="week-doc-spec" style="color:#94a3b8; font-size:0.75rem;">${docSpec}</div>
+                        </div>
+                        <span class="badge-periodic-off" style="font-size:0.65rem; padding:1px 5px; background:#e2e8f0; color:#475569; border-radius:3px; font-weight:700;">No atiende</span>
+                      </div>
+                      <div style="font-size:0.68rem; color:#94a3b8; font-style:italic; margin-top:2px;">
+                        ${getFrequencyLabel(assignment.frequency)}
+                      </div>
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                        <span style="font-size:0.68rem; color:#94a3b8; font-weight:600;"><i class="fa-regular fa-clock"></i> ${assignment.startTime}-${assignment.endTime}</span>
+                        <div style="display:flex; gap:2px;">
+                          <button class="btn btn-secondary btn-xs" style="padding: 1px 5px; font-size: 0.68rem;" onclick="MediApp.editAssignment('${assignment.id}')" title="Editar">
+                            <i class="fa-solid fa-pen"></i>
+                          </button>
+                          <button class="btn btn-danger btn-xs" style="padding: 1px 5px; font-size: 0.68rem;" onclick="MediApp.removeAssignment('${assignment.id}')" title="Liberar">
+                            <i class="fa-solid fa-trash-can"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }
               });
             } else {
               if (state.selectedStatus === 'BUSY' || state.searchQuery) return;
@@ -915,7 +998,7 @@
     table.innerHTML = headerHtml + bodyHtml;
   }
 
-  // Render TAB 3: Doctors Directory (34 Professionals)
+  // Render TAB 3: Doctors Directory
   function renderDoctors(filterText = '') {
     const container = document.getElementById('doctorsGrid');
     if (!container) return;
@@ -1387,25 +1470,24 @@
 
     saveData();
     renderDoctors();
-    renderAll();
+    renderGrid();
     closeModal('modalDoctor');
 
-    populateDoctorDropdowns(autoSelectNewDoctorInAssign ? newDocId : null);
-    autoSelectNewDoctorInAssign = false;
+    if (autoSelectNewDoctorInAssign) {
+      populateDoctorDropdowns(newDocId);
+      autoSelectNewDoctorInAssign = false;
+    }
 
-    showToast(`Profesional ${name} guardado con éxito (${state.doctors.length} en el directorio)`, 'success');
+    showToast(`Profesional ${name} registrado con éxito (${state.doctors.length} médicos en total)`, 'success');
   }
 
   function deleteDoctor(docId) {
-    const doc = state.doctors.find(d => d.id === docId);
-    const docName = doc ? doc.name : 'este médico';
-    if (confirm(`¿Desea eliminar a ${docName} del directorio?`)) {
+    if (confirm('¿Desea eliminar este médico del directorio?')) {
       state.doctors = state.doctors.filter(d => d.id !== docId);
       saveData();
       renderDoctors();
-      renderAll();
-      populateDoctorDropdowns();
-      showToast('Profesional eliminado del directorio', 'warning');
+      renderGrid();
+      showToast('Médico eliminado', 'warning');
     }
   }
 

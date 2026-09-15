@@ -121,6 +121,7 @@
       <div class="view-controls">
         <div class="legend-item"><span class="dot dot-free"></span> Disponible</div>
         <div class="legend-item"><span class="dot dot-busy"></span> Ocupado por Médico</div>
+        <div class="legend-item"><span class="dot" style="background:#94a3b8; border:1px dashed #64748b;"></span> No atiende esta semana (Gris)</div>
         <div class="legend-item"><span class="dot dot-maint"></span> Mantenimiento</div>
       </div>
     </div>
@@ -187,8 +188,35 @@
           </div>
 
           <div class="form-group">
+            <label for="assignFrequency"><i class="fa-solid fa-repeat"></i> Frecuencia / Días del Mes</label>
+            <select id="assignFrequency" class="select-custom">
+              <option value="ALL">Todas las semanas (Semanal regular)</option>
+              <option value="WEEK_1_3">1° y 3° semana del mes (Quincenal)</option>
+              <option value="WEEK_2_4">2° y 4° semana del mes (Quincenal)</option>
+              <option value="WEEK_1">Solo 1° semana del mes</option>
+              <option value="WEEK_2">Solo 2° semana del mes</option>
+              <option value="WEEK_3">Solo 3° semana del mes</option>
+              <option value="WEEK_4">Solo 4° semana del mes</option>
+              <option value="ONCE">Solo esta fecha puntual (Día específico)</option>
+            </select>
+            <small style="display:block; color:var(--text-muted); font-size:0.75rem; margin-top:3px;">
+              En las semanas en que no atienda, se mostrará en gris para recordar que el espacio le pertenece pero no atiende esa semana.
+            </small>
+          </div>
+
+          <div class="form-group">
             <label for="assignNotes">Notas u Observaciones (Opcional)</label>
             <input type="text" id="assignNotes" class="input-text" placeholder="Ej. Realiza ecografías pediátricas" />
+          </div>
+
+          <div class="form-group" style="margin-top: 0.75rem; background: rgba(37, 91, 179, 0.06); padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(37, 91, 179, 0.2);">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: var(--giovo-blue-dark); margin-bottom: 0;">
+              <input type="checkbox" id="assignRepeatWeekly" checked style="width: 18px; height: 18px; cursor: pointer;" />
+              <span>Aplicar este cambio a todas las semanas</span>
+            </label>
+            <small style="display: block; color: var(--text-muted); margin-top: 4px; font-size: 0.8rem;">
+              Al guardar, el cambio se aplicará a todas las semanas de la agenda para los días <strong id="assignDayOfWeekLabel">correspondientes</strong>.
+            </small>
           </div>
 
           <div id="assignConflictAlert" class="alert-box alert-warning d-none">
@@ -363,6 +391,38 @@
           </button>
         </div>
         <div id="doctorsGrid" class="doctors-grid" style="max-height: 60vh; overflow-y: auto; padding: 4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: Confirmar Liberación de Turno / Consultorio -->
+  <div id="modalConfirmRemove" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header header-giovo-magenta">
+        <h3><i class="fa-solid fa-trash-can"></i> Liberar Turno de Consultorio</h3>
+        <button class="modal-close" data-close="modalConfirmRemove">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem;">
+        <p id="confirmRemoveMessage" style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main); margin-bottom: 1.25rem;">
+          ¿Cómo desea eliminar esta asignación?
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button type="button" id="btnRemoveAllWeeks" class="btn btn-danger" style="justify-content: flex-start; padding: 0.85rem 1rem; text-align: left;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem;"><i class="fa-solid fa-calendar-xmark"></i> Eliminar de TODAS las semanas (permanente)</div>
+              <small style="opacity: 0.9; font-size: 0.8rem;">Elimina este turno de la agenda para siempre en todas las semanas del año.</small>
+            </div>
+          </button>
+          <button type="button" id="btnRemoveOnlyThisDate" class="btn btn-secondary" style="justify-content: flex-start; padding: 0.85rem 1rem; text-align: left;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem;"><i class="fa-solid fa-calendar-day"></i> Eliminar SOLO en esta fecha puntual</div>
+              <small style="color: var(--text-muted); font-size: 0.8rem;">Solo libera el turno en esta fecha, manteniéndolo en las demás semanas.</small>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="modalConfirmRemove">Cancelar</button>
       </div>
     </div>
   </div>
