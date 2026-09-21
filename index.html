@@ -1,254 +1,442 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centro Giovo - Informes Médicos</title>
-    <link rel="stylesheet" href="styles.css">
-    <!-- html2pdf para generación de PDFs -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CENTRO GIOVO – Disponibilidad de Consultorios</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Panel de Control (No se imprime) -->
-        <aside class="control-panel no-print">
-            <div class="logo-container">
-                <h2>Panel de Control</h2>
-            </div>
-            
-            <div class="control-group" id="config-section" style="border: 1px dashed #ccc; padding: 10px; margin-bottom: 15px; border-radius: 5px; background: #fff;">
-                <h4 style="margin-top: 0; color: #4474bf;">Configuración Inicial</h4>
-                <p style="font-size: 11px; color: #666; margin-bottom: 8px;">Para evitar errores de seguridad al generar el PDF, carga el logo y la firma aquí. Solo debes hacerlo una vez.</p>
-                <div style="margin-bottom: 8px;">
-                    <label style="font-size: 12px; font-weight: bold;">Cargar Logo (.png/.jpg):</label>
-                    <input type="file" id="logo-upload" accept="image/*" onchange="loadAndSaveImage(event, 'logoBase64', applyLogo)" style="font-size: 11px; width: 100%;">
-                </div>
-                <div>
-                    <label style="font-size: 12px; font-weight: bold;">Cargar Firma (.png/.jpg):</label>
-                    <input type="file" id="firma-upload" accept="image/*" onchange="loadAndSaveImage(event, 'firmaDigitalBase64', applySignature)" style="font-size: 11px; width: 100%;">
-                </div>
-            </div>
 
-            <div class="control-group">
-                <label>Tipo de Informe:</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="reportType" value="colpo" checked onchange="toggleReportType()"> Colposcopía</label>
-                    <label><input type="radio" name="reportType" value="video" onchange="toggleReportType()"> Videocolposcopía</label>
-                </div>
-            </div>
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      
+      <!-- Brand & Logo -->
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo.png" alt="GIOVO Dermatología y Salud" class="brand-logo-img" style="height: 52px; width: auto; object-fit: contain;" />
+        </div>
+        <div class="brand-divider"></div>
+        <div class="brand-text">
+          <h1>CENTRO GIOVO <span class="badge-giovo">Dermatología & Salud</span></h1>
+          <p>Organización de Consultorios & Asignación Médica</p>
+        </div>
+      </div>
 
-            <div class="control-group">
-                <label>Opciones de Firma:</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="signatureType" value="digital" checked onchange="toggleSignature()"> Incluir Firma (Para Drive)</label>
-                    <label><input type="radio" name="signatureType" value="manual" onchange="toggleSignature()"> Sin Firma (Para Imprimir)</label>
-                </div>
-            </div>
+      <!-- KPI Summary -->
+      <div class="kpi-bar">
+        <div class="kpi-card kpi-total">
+          <span class="kpi-val" id="kpiTotalRooms">10</span>
+          <span class="kpi-lbl"><i class="fa-solid fa-door-open"></i> Consultorios</span>
+        </div>
+        <div class="kpi-card kpi-busy">
+          <span class="kpi-val" id="kpiBusyCount">0</span>
+          <span class="kpi-lbl"><i class="fa-solid fa-user-doctor"></i> Ocupados</span>
+        </div>
+        <div class="kpi-card kpi-free">
+          <span class="kpi-val" id="kpiFreeCount">0</span>
+          <span class="kpi-lbl"><i class="fa-solid fa-circle-check"></i> Libres</span>
+        </div>
+      </div>
 
-            <div class="actions">
-                <button class="btn btn-primary" onclick="generatePDF()">Guardar PDF (Drive)</button>
-                <button class="btn btn-secondary" onclick="window.print()">Imprimir en Papel</button>
-            </div>
-        </aside>
+      <!-- Quick Action Buttons -->
+      <div class="header-actions">
+        <button id="btnQuickAssign" class="btn btn-giovo-blue">
+          <i class="fa-solid fa-plus-circle"></i> Asignar Médico
+        </button>
+        <button id="btnHeaderAddDoctor" class="btn btn-emerald">
+          <i class="fa-solid fa-user-plus"></i> + Nuevo Profesional
+        </button>
+        <button id="btnDirectoryDoctors" class="btn btn-secondary">
+          <i class="fa-solid fa-users"></i> Directorio Médicos
+        </button>
+        <button id="btnSmartFinder" class="btn btn-giovo-magenta">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Buscar Libre
+        </button>
+        <button id="btnManageShifts" class="btn btn-secondary">
+          <i class="fa-solid fa-clock"></i> Módulos Horarios
+        </button>
+      </div>
 
-        <!-- Documento A4 (Lo que se imprime/guarda) -->
-        <main class="document-container">
-            <div id="report-document" class="a4-page">
-                <!-- Encabezado -->
-                <header class="report-header">
-                    <img id="main-logo" alt="Centro Giovo Logo" class="report-logo" style="display: none;">
-                    <div class="header-right">
-                        <span><strong>INFORME DE <span id="title-type">COLPOSCOPÍA</span></strong></span>
-                        <div class="date-field">
-                            <span>Fecha:</span>
-                            <input type="date" class="inline-input">
-                        </div>
-                    </div>
-                </header>
+    </div>
+  </header>
 
-                <!-- Datos Paciente -->
-                <section class="patient-data section-box">
-                    <div class="row">
-                        <div class="col-70">
-                            <label>Paciente:</label>
-                            <input type="text" id="paciente-nombre" class="inline-input flex-grow">
-                        </div>
-                        <div class="col-30">
-                            <label>DNI:</label>
-                            <input type="text" id="paciente-dni" class="inline-input flex-grow">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-30">
-                            <label>Edad:</label>
-                            <input type="text" class="inline-input flex-grow">
-                        </div>
-                        <div class="col-70">
-                            <label>Obra Social y N° de Afiliado:</label>
-                            <input type="text" class="inline-input flex-grow">
-                        </div>
-                    </div>
-                </section>
+  <!-- Main Body Content -->
+  <main class="main-content">
 
-                <!-- Antecedentes -->
-                <section class="antecedentes section-box">
-                    <h3>ANTECEDENTES</h3>
-                    <div class="row">
-                        <div class="col-30">
-                            <label>FUM:</label>
-                            <input type="text" class="inline-input flex-grow">
-                        </div>
-                        <div class="col-30">
-                            <label>HCG:</label>
-                            <label class="check-label"><input type="checkbox"> +</label>
-                            <label class="check-label"><input type="checkbox"> -</label>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-40">
-                            <label>MAC:</label>
-                            <input type="text" class="inline-input flex-grow">
-                        </div>
-                        <div class="col-60">
-                            <label>Tabaquismo:</label>
-                            <label class="check-label"><input type="radio" name="tabaco"> Sí</label>
-                            <label class="check-label"><input type="radio" name="tabaco"> No</label>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-100">
-                            <label>PAP / Colpo previos:</label>
-                            <input type="text" class="inline-input flex-grow">
-                        </div>
-                    </div>
-                </section>
+    <!-- Simple Filter Control Bar -->
+    <div class="filters-panel">
+      <div class="filters-row">
+        
+        <!-- View Toggle (Día / Semana Completa) -->
+        <div class="filter-group">
+          <label><i class="fa-solid fa-eye"></i> Vista Agenda</label>
+          <div class="segmented-control">
+            <button id="btnDayView" class="segment"><i class="fa-solid fa-calendar-day"></i> Día Esp.</button>
+            <button id="btnWeekView" class="segment active"><i class="fa-solid fa-calendar-week"></i> Semana (Lun-Vie)</button>
+          </div>
+        </div>
 
-                <!-- Contenido Dinámico: Colpo o Video -->
-                <div id="dynamic-content">
-                    <!-- Se inyecta por JS -->
-                </div>
+        <!-- Date Selector & Controls -->
+        <div class="filter-group">
+          <label for="filterDate"><i class="fa-regular fa-calendar"></i> Fecha Seleccionada</label>
+          <div class="date-controls">
+            <button id="btnPrevDay" class="btn-icon" title="Día Anterior"><i class="fa-solid fa-chevron-left"></i></button>
+            <input type="date" id="filterDate" class="input-date" />
+            <button id="btnNextDay" class="btn-icon" title="Día Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+            <button id="btnToday" class="btn-pill">Hoy</button>
+          </div>
+        </div>
 
-                <!-- Footer (Impresión y Conducta) -->
-                <section class="conclusion section-box">
-                    <div class="row">
-                        <div class="col-100">
-                            <label>IMPRESIÓN DIAGNÓSTICA:</label>
-                            <textarea class="inline-textarea" rows="2"></textarea>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-100">
-                            <label>CONDUCTA:</label>
-                            <textarea class="inline-textarea" rows="2"></textarea>
-                        </div>
-                    </div>
-                </section>
+        <!-- Doctor / Specialty Search -->
+        <div class="filter-group search-group">
+          <label for="filterSearchDoc"><i class="fa-solid fa-magnifying-glass"></i> Buscar Médico o Especialidad</label>
+          <div class="search-input-wrap">
+            <input type="text" id="filterSearchDoc" class="input-text" placeholder="Ej. Dr. Rossi o Pediatría..." />
+            <button id="btnClearSearch" class="btn-clear"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
 
-                <!-- Firma y Sello -->
-                <footer class="report-footer">
-                    <div class="signature-box" id="signature-container">
-                        <!-- La firma se muestra/oculta por JS -->
-                        <div class="signature-line"></div>
-                        <p>Firma y sello:</p>
-                    </div>
-                </footer>
-            </div>
-        </main>
+      </div>
     </div>
 
-    <!-- Templates para Inyección -->
-    <template id="tpl-colposcopia">
-        <section class="examen section-box">
-            <h3>EXAMEN COLPOSCÓPICO</h3>
-            <div class="row">
-                <label>Satisfactorio:</label>
-                <label class="check-label"><input type="radio" name="satisfactorio"> Sí</label>
-                <label class="check-label"><input type="radio" name="satisfactorio"> No</label>
-            </div>
-            
-            <div class="examen-content">
-                <div class="hallazgos-col">
-                    <strong>Hallazgos:</strong>
-                    <label class="check-label"><input type="checkbox"> Normal</label>
-                    <label class="check-label"><input type="checkbox"> Epitelio acetoblanco</label>
-                    <label class="check-label"><input type="checkbox"> Mosaico</label>
-                    <label class="check-label"><input type="checkbox"> Punteado</label>
-                    <label class="check-label"><input type="checkbox"> Vasos atípicos</label>
-                    <label class="check-label"><input type="checkbox"> Lugol negativo</label>
-                    <div class="row mt-1">
-                        <label>Otros:</label>
-                        <input type="text" class="inline-input flex-grow">
-                    </div>
-                    
-                    <strong class="mt-2">PROCEDIMIENTOS</strong>
-                    <label class="check-label"><input type="checkbox"> No</label>
-                    <div class="row mt-1">
-                        <label class="check-label"><input type="checkbox"> Biopsia (sitio:</label>
-                        <input type="text" class="inline-input" style="width:100px;"> )
-                    </div>
-                    <label class="check-label"><input type="checkbox"> LEC/ECC</label>
-                </div>
-                
-                <div class="atlas-col">
-                    <!-- Atlas Interactivo SVG -->
-                    <div class="atlas-container">
-                        <svg viewBox="0 0 100 100" class="cervix-svg">
-                            <circle cx="50" cy="50" r="45" stroke="#333" stroke-width="1" fill="#fff9f9" />
-                            <ellipse cx="50" cy="50" rx="10" ry="4" stroke="#333" stroke-width="1.5" fill="#e6d5d5" />
-                            <!-- Marcas de reloj -->
-                            <text x="50" y="12" font-size="6" text-anchor="middle">12</text>
-                            <text x="88" y="52" font-size="6" text-anchor="middle">3</text>
-                            <text x="50" y="92" font-size="6" text-anchor="middle">6</text>
-                            <text x="12" y="52" font-size="6" text-anchor="middle">9</text>
-                            
-                            <text x="69" y="17" font-size="5" text-anchor="middle">1</text>
-                            <text x="83" y="31" font-size="5" text-anchor="middle">2</text>
-                            <text x="83" y="72" font-size="5" text-anchor="middle">4</text>
-                            <text x="69" y="86" font-size="5" text-anchor="middle">5</text>
-                            <text x="31" y="86" font-size="5" text-anchor="middle">7</text>
-                            <text x="17" y="72" font-size="5" text-anchor="middle">8</text>
-                            <text x="17" y="31" font-size="5" text-anchor="middle">10</text>
-                            <text x="31" y="17" font-size="5" text-anchor="middle">11</text>
-                        </svg>
-                        <canvas id="drawing-canvas" width="180" height="180"></canvas>
-                    </div>
-                    <div class="atlas-tools no-print">
-                        <button class="btn btn-small" onclick="setDrawMode('draw')" title="Dibujar con lápiz rojo">✏️ Dibujar</button>
-                        <button class="btn btn-small" onclick="setDrawMode('erase')" title="Borrar trazos">🧽 Borrar</button>
-                        <button class="btn btn-small clear-marks" onclick="clearCanvas()">Limpiar Todo</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </template>
+    <!-- Section Title & Legend -->
+    <div class="view-header">
+      <div class="view-title">
+        <h2 id="gridTitleDay">Consultorios y Asignación Horaria</h2>
+        <p id="gridSubtitle">Horario Abierto del Centro: 07:00 hs a 21:00 hs (Mañana: 07-14h / Tarde: 14-21h)</p>
+      </div>
+      <div class="view-controls">
+        <div class="legend-item"><span class="dot dot-free"></span> Disponible</div>
+        <div class="legend-item"><span class="dot dot-busy"></span> Ocupado por Médico</div>
+        <div class="legend-item"><span class="dot" style="background:#94a3b8; border:1px dashed #64748b;"></span> No atiende esta semana (Gris)</div>
+        <div class="legend-item"><span class="dot dot-maint"></span> Mantenimiento</div>
+      </div>
+    </div>
 
-    <template id="tpl-videocolposcopia">
-        <section class="examen section-box">
-            <h3>VIDEOCOLPOSCOPÍA - IMÁGENES</h3>
-            <div class="video-grid">
-                <!-- Slot 1 -->
-                <div class="image-slot" onclick="triggerUpload('img1')">
-                    <img id="preview-img1" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E" alt="Subir imagen">
-                    <span class="no-print upload-hint">Click para foto</span>
-                    <input type="file" id="img1" accept="image/*" onchange="loadImage(event, 'preview-img1')" class="hidden-input">
-                </div>
-                <!-- Slot 2 -->
-                <div class="image-slot" onclick="triggerUpload('img2')">
-                    <img id="preview-img2" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E" alt="Subir imagen">
-                    <span class="no-print upload-hint">Click para foto</span>
-                    <input type="file" id="img2" accept="image/*" onchange="loadImage(event, 'preview-img2')" class="hidden-input">
-                </div>
-            </div>
-            <div class="row mt-2">
-                <div class="col-100">
-                    <label>Descripción de Imágenes:</label>
-                    <textarea class="inline-textarea" rows="3"></textarea>
-                </div>
-            </div>
-        </section>
-    </template>
+    <!-- Day View Container (Rectángulos de los 10 Consultorios) -->
+    <div id="roomsGrid" class="rooms-cards-grid d-none"></div>
 
-    <script src="app.js"></script>
+    <!-- Week View Container (Vista Semanal Lunes a Viernes) -->
+    <div id="weekGrid" class="week-grid-wrapper"></div>
+
+  </main>
+
+  <!-- MODAL 1: Asignar / Editar Horario de Médico -->
+  <div id="modalAssign" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header header-giovo-blue">
+        <h3 id="modalAssignTitle"><i class="fa-solid fa-calendar-plus"></i> Asignar Médico a Consultorio</h3>
+        <button class="modal-close" data-close="modalAssign">&times;</button>
+      </div>
+      <form id="formAssign">
+        <input type="hidden" id="assignId" />
+        <input type="hidden" id="assignRoomId" />
+        <input type="hidden" id="assignShiftId" />
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="assignDate">Fecha de Atención</label>
+            <input type="date" id="assignDate" class="input-date" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="assignConsultorioSelect">Consultorio</label>
+              <select id="assignConsultorioSelect" class="select-custom" required></select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="assignShiftSelect">Turno / Franja</label>
+              <select id="assignShiftSelect" class="select-custom" required>
+                <option value="MANANA">Mañana (07:00 - 14:00 hs)</option>
+                <option value="TARDE">Tarde (14:00 - 21:00 hs)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label for="assignDoctorSelect" style="margin-bottom: 0;">Seleccionar Médico / Profesional</label>
+              <button type="button" id="btnQuickCreateDocFromAssign" class="btn btn-secondary btn-xs" style="padding: 2px 8px; font-size: 0.75rem;">
+                <i class="fa-solid fa-user-plus"></i> + Nuevo Profesional
+              </button>
+            </div>
+            <select id="assignDoctorSelect" class="select-custom" required></select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="assignStartTime">Hora Inicio</label>
+              <input type="time" id="assignStartTime" class="input-date" value="09:00" required />
+            </div>
+            <div class="form-group flex-1">
+              <label for="assignEndTime">Hora Fin</label>
+              <input type="time" id="assignEndTime" class="input-date" value="14:00" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="assignFrequency"><i class="fa-solid fa-repeat"></i> Frecuencia / Días del Mes</label>
+            <select id="assignFrequency" class="select-custom">
+              <option value="ALL">Todas las semanas (Semanal regular)</option>
+              <option value="WEEK_1_3">1° y 3° semana del mes (Quincenal)</option>
+              <option value="WEEK_2_4">2° y 4° semana del mes (Quincenal)</option>
+              <option value="WEEK_1">Solo 1° semana del mes</option>
+              <option value="WEEK_2">Solo 2° semana del mes</option>
+              <option value="WEEK_3">Solo 3° semana del mes</option>
+              <option value="WEEK_4">Solo 4° semana del mes</option>
+              <option value="ONCE">Solo esta fecha puntual (Día específico)</option>
+            </select>
+            <small style="display:block; color:var(--text-muted); font-size:0.75rem; margin-top:3px;">
+              En las semanas en que no atienda, se mostrará en gris para recordar que el espacio le pertenece pero no atiende esa semana.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="assignNotes">Notas u Observaciones (Opcional)</label>
+            <input type="text" id="assignNotes" class="input-text" placeholder="Ej. Realiza ecografías pediátricas" />
+          </div>
+
+          <div class="form-group" style="margin-top: 0.75rem; background: rgba(37, 91, 179, 0.06); padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(37, 91, 179, 0.2);">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: var(--giovo-blue-dark); margin-bottom: 0;">
+              <input type="checkbox" id="assignRepeatWeekly" checked style="width: 18px; height: 18px; cursor: pointer;" />
+              <span>Aplicar este cambio a todas las semanas</span>
+            </label>
+            <small style="display: block; color: var(--text-muted); margin-top: 4px; font-size: 0.8rem;">
+              Al guardar, el cambio se aplicará a todas las semanas de la agenda para los días <strong id="assignDayOfWeekLabel">correspondientes</strong>.
+            </small>
+          </div>
+
+          <div id="assignConflictAlert" class="alert-box alert-warning d-none">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="assignConflictText">Advertencia: Conflicto de horario en este consultorio.</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalAssign">Cancelar</button>
+          <button type="submit" class="btn btn-giovo-blue">Guardar Asignación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Buscador Inteligente de Consultorios Libres -->
+  <div id="modalSmart" class="modal-backdrop">
+    <div class="modal-card modal-lg">
+      <div class="modal-header header-giovo-magenta">
+        <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Buscar Consultorio Libre</h3>
+        <button class="modal-close" data-close="modalSmart">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="smartDocSelect">Médico a Reubicar / Asignar</label>
+          <select id="smartDocSelect" class="select-custom" style="width: 100%;"></select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="smartDate">Fecha</label>
+            <input type="date" id="smartDate" class="input-date" />
+          </div>
+          <div class="form-group flex-1">
+            <label for="smartShift">Turno Deseado</label>
+            <select id="smartShift" class="select-custom">
+              <option value="ALL">Cualquier turno</option>
+              <option value="MANANA">Mañana</option>
+              <option value="TARDE">Tarde</option>
+            </select>
+          </div>
+        </div>
+
+
+        <div class="view-header" style="margin-top: 1rem; margin-bottom: 0.5rem;">
+          <h4>Consultorios Libres Encontrados:</h4>
+        </div>
+
+        <div id="smartResults" class="smart-results-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Gestionar Módulos / Turnos -->
+  <div id="modalShifts" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header header-giovo-blue">
+        <h3><i class="fa-solid fa-clock"></i> Configuración de Módulos Horarios</h3>
+        <button class="modal-close" data-close="modalShifts">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- List of existing shifts -->
+        <div class="view-header" style="margin-bottom: 0.5rem; display: block;">
+          <h4 style="font-weight: 700; color: var(--giovo-blue-dark); font-size: 0.95rem;">Módulos Actuales:</h4>
+        </div>
+        <div id="shiftsListContainer" class="shifts-list-container">
+          <!-- Loaded dynamically -->
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;" />
+
+        <!-- Form to add/edit shift -->
+        <form id="formShift">
+          <input type="hidden" id="shiftId" />
+          <div class="view-header" style="margin-bottom: 0.75rem; display: block;">
+            <h4 id="formShiftTitle" style="font-weight: 700; color: var(--giovo-blue-dark); font-size: 0.95rem;">Agregar Nuevo Módulo:</h4>
+          </div>
+          <div class="form-group">
+            <label for="shiftLabel">Nombre del Módulo</label>
+            <input type="text" id="shiftLabel" class="input-text" placeholder="Ej. Tarde 1, Tarde 2, Vespertino" required />
+          </div>
+          <div class="form-row" style="margin-top: 0.75rem;">
+            <div class="form-group flex-1">
+              <label for="shiftStart">Hora Inicio</label>
+              <input type="time" id="shiftStart" class="input-date" required />
+            </div>
+            <div class="form-group flex-1">
+              <label for="shiftEnd">Hora Fin</label>
+              <input type="time" id="shiftEnd" class="input-date" required />
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <label for="shiftIcon">Icono descriptivo</label>
+            <select id="shiftIcon" class="select-custom">
+              <option value="fa-sun">Sol (Mañana/Tarde)</option>
+              <option value="fa-cloud-sun">Sol con nube (Tarde)</option>
+              <option value="fa-moon">Luna (Noche/Vespertino)</option>
+              <option value="fa-clock">Reloj (Estándar)</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;">
+            <button type="button" id="btnCancelShiftEdit" class="btn btn-secondary btn-xs d-none">Cancelar</button>
+            <button type="submit" id="btnSaveShift" class="btn btn-giovo-blue btn-xs">Guardar Módulo</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Agregar / Editar Profesional Médico -->
+  <div id="modalDoctor" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header header-giovo-blue">
+        <h3 id="modalDoctorTitle"><i class="fa-solid fa-user-plus"></i> Incorporación de Nuevo Profesional</h3>
+        <button class="modal-close" data-close="modalDoctor">&times;</button>
+      </div>
+      <form id="formDoctor">
+        <input type="hidden" id="editDoctorId" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="docName">Nombre Completo y Título (Dr., Dra., Lic., Bioq., Csmt., etc.)</label>
+            <input type="text" id="docName" class="input-text" placeholder="Ej. Dr. PÉREZ JUAN CARLOS o Lic. LÓPEZ MARÍA" required />
+          </div>
+
+          <div class="form-row" style="margin-top: 0.75rem;">
+            <div class="form-group flex-1">
+              <label for="docSpecialty">Especialidad</label>
+              <input type="text" id="docSpecialty" class="input-text" placeholder="Ej. DERMATOLOGIA, PEDIATRIA, etc." required />
+            </div>
+            <div class="form-group" style="width: 100px;">
+              <label for="docColor">Color</label>
+              <input type="color" id="docColor" class="input-color" value="#3b82f6" style="height: 38px; width: 100%; cursor: pointer; padding: 2px; border-radius: 6px;" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <label for="docPhone">Consultorio Habitual / Teléfono / Ubicación</label>
+            <input type="text" id="docPhone" class="input-text" placeholder="Ej. Consultorio 3 o Sin consultorio fijo" />
+          </div>
+
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <label for="docNotes">Observaciones o Notas (Opcional)</label>
+            <input type="text" id="docNotes" class="input-text" placeholder="Ej. Atiende adultos, niños o ecografías" />
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 1.25rem;">
+          <button type="button" class="btn btn-secondary" data-close="modalDoctor">Cancelar</button>
+          <button type="submit" class="btn btn-giovo-blue"><i class="fa-solid fa-check"></i> Guardar Profesional</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 5: Directorio de Profesionales de Centro Giovo -->
+  <div id="modalDirectoryDoctors" class="modal-backdrop">
+    <div class="modal-card modal-lg">
+      <div class="modal-header header-giovo-blue">
+        <h3><i class="fa-solid fa-users"></i> Directorio de Profesionales</h3>
+        <button type="button" class="modal-close" data-close="modalDirectoryDoctors" onclick="MediApp.closeModal('modalDirectoryDoctors')" title="Cerrar ventana">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 250px;">
+            <input type="text" id="filterDirectoryDoc" class="input-text" placeholder="Filtrar profesionales por nombre o especialidad..." />
+          </div>
+          <button type="button" id="btnAddDoctorFromDirectory" class="btn btn-emerald btn-sm">
+            <i class="fa-solid fa-user-plus"></i> + Agregar Profesional
+          </button>
+        </div>
+        <div id="doctorsGrid" class="doctors-grid" style="max-height: 60vh; overflow-y: auto; padding: 4px;"></div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; padding: 1rem 1.6rem; border-top: 1px solid var(--border-color);">
+        <button type="button" class="btn btn-secondary" data-close="modalDirectoryDoctors" onclick="MediApp.closeModal('modalDirectoryDoctors')">
+          <i class="fa-solid fa-xmark"></i> Cerrar Directorio
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: Confirmar Liberación de Turno / Consultorio -->
+  <div id="modalConfirmRemove" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header header-giovo-magenta">
+        <h3><i class="fa-solid fa-trash-can"></i> Liberar Turno de Consultorio</h3>
+        <button class="modal-close" data-close="modalConfirmRemove">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem;">
+        <p id="confirmRemoveMessage" style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main); margin-bottom: 1.25rem;">
+          ¿Cómo desea eliminar esta asignación?
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button type="button" id="btnRemoveAllWeeks" class="btn btn-danger" style="justify-content: flex-start; padding: 0.85rem 1rem; text-align: left;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem;"><i class="fa-solid fa-calendar-xmark"></i> Eliminar de TODAS las semanas (permanente)</div>
+              <small style="opacity: 0.9; font-size: 0.8rem;">Elimina este turno de la agenda para siempre en todas las semanas del año.</small>
+            </div>
+          </button>
+          <button type="button" id="btnRemoveOnlyThisDate" class="btn btn-secondary" style="justify-content: flex-start; padding: 0.85rem 1rem; text-align: left;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem;"><i class="fa-solid fa-calendar-day"></i> Eliminar SOLO en esta fecha puntual</div>
+              <small style="color: var(--text-muted); font-size: 0.8rem;">Solo libera el turno en esta fecha, manteniéndolo en las demás semanas.</small>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="modalConfirmRemove">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Main Application Logic Script -->
+  <script src="app.js"></script>
+
 </body>
 </html>
